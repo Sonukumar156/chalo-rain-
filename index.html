@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5cab">
+<title>Chalo Rail - Live Train, PNR aur Seats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#0b5cab;--blue2:#084786;--bg:#eef1f5;--card:#fff;--line:#dfe3e8;--text:#1b2129;--muted:#667080;--go:#12804a;--go-bg:#e0f3e8;--late:#c62828;--late-bg:#fde8e7;--warn:#a35d00;--warn-bg:#fff1d6;--rail:#aab3bf;--soft:#f5f7fa;--shadow:0 1px 2px rgba(15,30,60,.06),0 6px 16px rgba(15,30,60,.06)}
+@media (prefers-color-scheme:dark){:root{--blue:#1b3a63;--blue2:#14294a;--bg:#0f1318;--card:#1a1f26;--line:#2b323b;--text:#eaedf1;--muted:#98a2af;--go:#4cc088;--go-bg:#15301f;--late:#ff8a80;--late-bg:#3a1b19;--warn:#f0b455;--warn-bg:#3a2c12;--rail:#56606c;--soft:#222831;--shadow:none}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Mukta",system-ui,sans-serif;line-height:1.4}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #ffb300;outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto}
+
+/* App bar + search */
+header{background:var(--blue);color:#fff;padding:max(12px,env(safe-area-inset-top)) 16px 54px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+.brand svg{width:26px;height:26px}
+.search{display:flex;gap:8px;margin-top:12px}
+#num{flex:1;min-width:0;font:800 22px/1 "Mukta",sans-serif;letter-spacing:4px;padding:11px 14px;border:0;border-radius:12px;background:#fff;color:#111}
+#num::placeholder{color:#a9b2bd;letter-spacing:4px;font-weight:600}
+#go{border:0;border-radius:12px;background:#ffb300;color:#1b1400;font-weight:800;font-size:17px;padding:0 22px}
+#go:active{filter:brightness(.92)}#go:disabled{opacity:.6}
+.recent{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+.recent::-webkit-scrollbar{display:none}
+.recent:empty{display:none}
+.chip{flex:none;background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:999px;padding:2px 13px;font-weight:700;font-size:14px;letter-spacing:1px}
+.chip:active{background:rgba(255,255,255,.3)}
+
+main{padding:0 12px 90px;margin-top:-38px}
+#msg{margin:50px 4px 0;font-weight:600;color:var(--muted)}
+#msg:empty{display:none}
+#msg.err{color:var(--late);background:var(--late-bg);padding:10px 14px;border-radius:12px}
+.empty{margin-top:56px;text-align:center;color:var(--muted);padding:0 24px}
+.empty svg{width:64px;height:64px;opacity:.5}
+.empty p{margin:8px 0 0;font-size:15px}
+
+/* Hero */
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);animation:rise .35s ease both;overflow:hidden}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hero{padding:16px}
+.hrow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.no{font-weight:800;color:var(--blue);font-size:14px;letter-spacing:1px}
+@media (prefers-color-scheme:dark){.no{color:#8db6ea}}
+.name{font-size:21px;font-weight:800;margin:0;line-height:1.15}
+.type{font-size:13px;color:var(--muted)}
+.pill{flex:none;font-weight:800;font-size:13px;padding:3px 12px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--go-bg);color:var(--go)}.pill.bad{background:var(--late-bg);color:var(--late)}.pill.mid{background:var(--warn-bg);color:var(--warn)}
+.status{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--soft);display:flex;gap:12px;align-items:center}
+.status svg{flex:none;width:34px;height:34px;color:var(--blue)}
+@media (prefers-color-scheme:dark){.status svg{color:#8db6ea}}
+.status b{display:block;font-size:17px;line-height:1.2}
+.status small{color:var(--muted);font-size:13px}
+.late{color:var(--late)}.ontime{color:var(--go)}
+.next{margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.kv{background:var(--soft);border-radius:12px;padding:9px 10px}
+.kv small{display:block;color:var(--muted);font-size:12px}
+.kv b{font-size:16px;line-height:1.2;display:block}
+.alert{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--late-bg);color:var(--late);font-weight:600;font-size:14px}
+.upd{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;color:var(--muted)}
+.upd button{border:1.5px solid var(--line);background:transparent;color:var(--text);border-radius:8px;padding:1px 12px;font-weight:600;font-size:13px}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--go);margin-right:6px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.2}}
+
+/* Timeline */
+.tl{margin-top:12px}
+.tl h2{margin:0;padding:14px 16px 6px;font-size:16px;font-weight:800;display:flex;justify-content:space-between}
+.tl h2 small{font-weight:400;color:var(--muted);font-size:13px}
+ol{list-style:none;margin:0;padding:0 12px 10px}
+.stn{display:grid;grid-template-columns:62px 28px 1fr;gap:6px;position:relative;min-height:64px}
+.tm{text-align:right;padding-top:10px;font-variant-numeric:tabular-nums;font-size:14px;line-height:1.25}
+.tm div{display:flex;flex-direction:column;align-items:flex-end;margin-bottom:6px}
+.tm em{font-style:normal;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.tm b{font-weight:800}.tm s{font-size:11px;color:var(--muted)}
+.tm .exp{color:var(--muted);font-weight:600}
+.rl{position:relative}
+.rl::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;background:var(--line)}
+.stn:first-child .rl::before{top:22px}
+.stn:last-child .rl::before{bottom:calc(100% - 22px)}
+.stn.done .rl::before,.stn.done+.stn .rl::before{background:var(--go)}
+.stn.done+.stn:not(.done) .rl::before{background:linear-gradient(var(--go),var(--line))}
+.dot{position:absolute;left:50%;top:14px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--card);border:4px solid var(--rail);z-index:1}
+.stn.done .dot{border-color:var(--go);background:var(--go)}
+.stn.here .dot{border-color:var(--go);width:20px;height:20px;margin-left:-10px;top:12px;box-shadow:0 0 0 6px color-mix(in srgb,var(--go) 25%,transparent)}
+.info{padding:8px 4px 10px 6px;min-width:0}
+.sn{font-weight:800;font-size:16px;line-height:1.2}
+.stn.done .sn{color:var(--muted);font-weight:600}
+.meta{font-size:12px;color:var(--muted);margin-top:2px}
+.pf{display:inline-block;background:var(--soft);border-radius:4px;padding:0 6px;margin-left:4px;font-weight:700;color:var(--text)}
+.dl{font-size:12px;font-weight:700;margin-top:2px}
+
+/* Train marker between stations */
+.mk{display:grid;grid-template-columns:62px 28px 1fr;gap:6px;min-height:56px}
+.mk .rl::before{background:var(--go)}
+.mk .ic{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;z-index:2;box-shadow:0 0 0 5px color-mix(in srgb,var(--blue) 22%,transparent);animation:bob 2s ease-in-out infinite}
+.mk .ic svg{width:20px;height:20px}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.mk .info{align-self:center}
+.mk .tag{display:inline-block;background:var(--blue);color:#fff;border-radius:8px;padding:2px 10px;font-weight:700;font-size:13px}
+.mk .meta{margin-top:4px}
+
+/* Tabs + forms */
+.tabs{display:flex;gap:4px;margin-top:12px;background:rgba(0,0,0,.2);padding:4px;border-radius:12px}
+.tabs button{flex:1;border:0;background:transparent;color:#fff;font-weight:700;font-size:15px;padding:7px 4px;border-radius:9px;opacity:.8}
+.tabs button[aria-selected=true]{background:#fff;color:var(--blue2);opacity:1}
+@media (prefers-color-scheme:dark){.tabs button[aria-selected=true]{color:#14294a}}
+.panel{margin-top:10px}
+.panel[hidden]{display:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid label{display:block;font-size:12px;font-weight:600;opacity:.85}
+.grid input,.grid select{display:block;width:100%;margin-top:3px;font:700 16px "Mukta",sans-serif;padding:9px 10px;border:0;border-radius:10px;background:#fff;color:#111;text-transform:none}
+#sFrom,#sTo{text-transform:uppercase}
+button.wide{width:100%;margin-top:10px;border:0;border-radius:12px;background:#ffb300;color:#1b1400;font-weight:800;font-size:17px;padding:11px}
+#pnrGo{border:0;border-radius:12px;background:#ffb300;color:#1b1400;font-weight:800;font-size:17px;padding:0 22px}
+
+/* PNR */
+.pax{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.pax:first-of-type{border-top:0}
+.pax .who{font-weight:700}
+.pax small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.berth{text-align:right;font-weight:800;line-height:1.2}
+.berth small{font-weight:400}
+.sec{padding:0 16px 8px}
+.sec h2{margin:0;padding:14px 0 4px;font-size:16px;font-weight:800}
+.rt{display:flex;justify-content:space-between;gap:10px;margin-top:14px;font-weight:800}
+.rt span:last-child{text-align:right}.rt small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.link{display:inline-block;margin-top:10px;color:var(--blue);font-weight:700}
+@media (prefers-color-scheme:dark){.link{color:#8db6ea}}
+
+/* Seats calendar */
+.cal{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:6px 16px 16px}
+.day{border-radius:12px;padding:10px 12px;border:1px solid var(--line);background:var(--soft)}
+.day small{display:block;color:var(--muted);font-size:12px}
+.day b{display:block;font-size:17px;line-height:1.25}
+.day span{font-size:12px;color:var(--muted)}
+.day.av{background:var(--go-bg);border-color:transparent}.day.av b{color:var(--go)}
+.day.wl{background:var(--warn-bg);border-color:transparent}.day.wl b{color:var(--warn)}
+.day.rg{background:var(--late-bg);border-color:transparent}.day.rg b{color:var(--late)}
+
+/* Saved trips + PNR extras */
+.shd{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.shd h2{margin:0;font-size:16px;font-weight:800}
+.mini{border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:3px 14px;font-weight:700;font-size:13px}
+.mini:disabled{opacity:.6}
+.trip{padding:14px 16px;position:relative;cursor:pointer}
+.trip .no,.trip .name{display:block;padding-right:76px}
+.trip .x{position:absolute;right:8px;top:6px;border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;padding:4px 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pill.big{font-size:15px;padding:4px 14px}
+/* Seats: class chips + date strip */
+.cls{display:flex;gap:6px;margin-top:14px;overflow-x:auto;scrollbar-width:none}
+.cls button{flex:none;border:1.5px solid var(--line);background:var(--soft);color:var(--text);border-radius:999px;padding:3px 16px;font-weight:800}
+.cls button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:6px 16px 12px;scroll-snap-type:x proximity}
+.dc{flex:none;width:112px;scroll-snap-align:start;border-radius:12px;border:1px solid var(--line);background:var(--soft);padding:10px 8px;text-align:center}
+.dc small{display:block;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.dc b{display:block;font-size:26px;line-height:1.05}
+.dc i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-bottom:6px}
+.dc strong{display:block;font-size:15px;line-height:1.2}
+.dc span{display:block;font-size:11px;color:var(--muted);margin-top:2px;word-break:break-word}
+.dc.av{background:var(--go-bg);border-color:var(--go)}.dc.av strong{color:var(--go)}
+.dc.wl{background:var(--warn-bg);border-color:var(--warn)}.dc.wl strong{color:var(--warn)}
+.dc.rg{background:var(--late-bg);border-color:var(--late)}.dc.rg strong{color:var(--late)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 12px;font-size:12px;font-weight:700}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:currentColor}
+.legend .av{color:var(--go)}.legend .wl{color:var(--warn)}.legend .rg{color:var(--late)}
+
+.dc em.ch{display:inline-block;margin-top:6px;font-style:normal;font-size:13px;font-weight:800;padding:1px 9px;border-radius:999px;background:var(--card)}
+.dc span.cl{margin-top:1px}
+.dc em.ch.ok{color:var(--go)}.dc em.ch.mid{color:var(--warn)}.dc em.ch.bad{color:var(--late)}
+/* Chance ke hisaab se card ka rang */
+.trip.t-ok,.tone.t-ok{border-left:6px solid var(--go);background:linear-gradient(90deg,var(--go-bg),var(--card) 55%)}
+.trip.t-mid,.tone.t-mid{border-left:6px solid var(--warn);background:linear-gradient(90deg,var(--warn-bg),var(--card) 55%)}
+.trip.t-bad,.tone.t-bad{border-left:6px solid var(--late);background:linear-gradient(90deg,var(--late-bg),var(--card) 55%)}
+.trip.t-na,.tone.t-na{border-left:6px solid var(--rail);opacity:.8}
+.trip .rf{position:absolute;right:38px;top:6px;border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;padding:4px 8px}
+.trip .rf:disabled{opacity:.6}
+.rf.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.upl{margin-top:8px;font-size:12px;color:var(--muted)}
+/* Confirm hone ka chance */
+.pr{padding:16px}
+.pr-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pr-top h2{margin:0;font-size:16px;font-weight:800}
+.pr-main{display:flex;align-items:center;gap:16px;margin-top:10px}
+.pr-num{font-size:52px;font-weight:800;line-height:1}
+.pr-num small{font-size:24px;margin-left:2px}
+.pr-num.ok{color:var(--go)}.pr-num.mid{color:var(--warn)}.pr-num.bad{color:var(--late)}
+.pr-side{font-weight:700;line-height:1.3}
+.pr-side small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.gauge{height:10px;border-radius:99px;background:var(--line);margin-top:12px;overflow:hidden}
+.gauge i{display:block;height:100%;border-radius:99px;background:var(--late)}
+.gauge.mid i{background:var(--warn)}.gauge.ok i{background:var(--go)}
+.pr-note{margin:10px 0 0;font-size:12px;color:var(--muted)}
+/* Station search + train list */
+.route{position:relative;display:grid;gap:8px}
+.ac{position:relative;display:block;font-size:12px;font-weight:600;opacity:1}
+.ac input{display:block;width:100%;margin-top:3px;font:700 17px "Mukta",sans-serif;padding:10px 44px 10px 12px;border:0;border-radius:10px;background:#fff;color:#111}
+.swap{position:absolute;right:8px;top:50%;margin-top:-6px;width:34px;height:34px;border-radius:50%;border:2px solid var(--blue);background:#fff;color:var(--blue);font-size:18px;line-height:1;z-index:3;padding:0}
+.sug{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;background:var(--card);color:var(--text);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:30;max-height:300px;overflow:auto}
+.sug[hidden]{display:none}
+.sug li{padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;font-size:15px}
+.sug li:hover,.sug li:active{background:var(--soft)}
+.sug li b{color:var(--text)}
+.sug li span{font-size:12px;font-weight:800;letter-spacing:.5px;color:#fff;background:#0b5cab;border-radius:5px;padding:1px 7px;flex:none}
+.sug li small{flex-basis:100%;font-size:12px;color:var(--muted)}
+.tr{margin-top:12px}
+.trh{display:block;width:100%;text-align:left;background:transparent;border:0;color:inherit;padding:14px 16px 12px;font:inherit}
+.trh .top{align-items:center}
+.chev{font-size:22px;color:var(--muted);transition:transform .2s}
+.tr.open .chev{transform:rotate(180deg)}
+.tt{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-top:10px}
+.tt b{font-size:20px;line-height:1.1;display:block}
+.tt b sup{font-size:11px;color:var(--late);margin-left:2px}
+.tt small{display:block;color:var(--muted);font-size:12px}
+.dur{text-align:center;min-width:70px}
+.dur hr{border:0;border-top:2px dashed var(--line);margin:4px 0 0}
+.days{display:flex;gap:4px;align-items:center;margin-top:10px}
+.days span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--rail);background:var(--soft)}
+.days span.on{background:var(--go-bg);color:var(--go)}
+.days em{margin-left:auto;font-style:normal;font-size:12px;color:var(--muted)}
+.seatbox{border-top:1px solid var(--line);padding-top:10px}
+.halts{margin:0 16px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.halts summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:14px;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.halts summary::-webkit-details-marker{display:none}
+.halts summary::after{content:"⌄";color:var(--muted);font-size:18px;transition:transform .2s}
+.halts[open] summary::after{transform:rotate(180deg)}
+.halts summary b{font-weight:600;color:var(--muted);font-size:12px;margin-left:auto}
+.halts ol{padding:0 14px 8px}
+.halts li{display:grid;grid-template-columns:50px 18px 1fr auto;gap:8px;align-items:flex-start;padding:7px 0;position:relative;border:0}
+.halts li::before{content:"";position:absolute;left:58px;top:0;bottom:0;width:2px;background:var(--line);margin:0}
+.halts li:first-child::before{top:50%}.halts li:last-child::before{bottom:50%}
+.halts .ht{text-align:right;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;padding-top:1px}
+.halts .ht sup{color:var(--late);font-size:10px}
+.halts .hd{width:10px;height:10px;border-radius:50%;background:var(--card);border:2px solid var(--rail);margin:5px 0 0 4px;z-index:1}
+.halts li.end .hd{background:var(--blue);border-color:var(--blue);width:12px;height:12px;margin:4px 0 0 3px}
+@media (prefers-color-scheme:dark){.halts li.end .hd{background:#8db6ea;border-color:#8db6ea}}
+.halts .hn{font-weight:600;font-size:14px;line-height:1.25;min-width:0}
+.halts li.end .hn{font-weight:800}
+.halts .hn small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+.halts .hs{font-size:11px;color:var(--muted);white-space:nowrap;padding-top:2px}
+.seatbox .cls{margin:0 16px 4px}
+.note{margin:0;padding:12px 16px 16px;color:var(--muted);font-size:14px}
+.note.err{color:var(--late)}
+
+/* PNR box ko bhi Live wale box jaisa style + shrink hone do (button kate nahi) */
+#pnr{flex:1;min-width:0;font:800 20px/1 "Mukta",sans-serif;letter-spacing:2px;padding:11px 14px;border-radius:12px;background:#fff;color:#111}
+#pnr::placeholder{color:#a9b2bd;letter-spacing:1px;font-weight:600;font-size:16px}
+#go,#pnrGo{flex:none}
+/* ===== Polish: professional look ===== */
+:root{--r:16px;--hair:rgba(15,30,60,.08)}
+@media (prefers-color-scheme:dark){:root{--hair:rgba(255,255,255,.07)}}
+body{font-size:15px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.i{width:1em;height:1em;flex:none;vertical-align:-.14em}
+header{background:linear-gradient(180deg,#0d63b8 0%,#084786 100%);padding-bottom:60px;position:relative}
+@media (prefers-color-scheme:dark){header{background:linear-gradient(180deg,#1d3f6d 0%,#122743 100%)}}
+.brand{gap:12px;line-height:1.1}
+.brand small{display:block;font-weight:600;font-size:12px;opacity:.7;margin-top:3px;letter-spacing:.2px}
+.logo{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#ffb300;color:#1b1400;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.logo svg{width:24px;height:24px}
+.tabs{background:rgba(255,255,255,.12);border-radius:14px;padding:4px;gap:2px;margin-top:16px}
+.tabs button{min-height:40px;font-size:14px;letter-spacing:.1px;border-radius:11px;opacity:.85;transition:background .15s,color .15s}
+.tabs button[aria-selected=true]{box-shadow:0 2px 6px rgba(0,0,0,.18)}
+#num,#pnr,.ac input,.grid input,.grid select{border:2px solid transparent;transition:border-color .15s,box-shadow .15s}
+#num:focus,#pnr:focus,.ac input:focus,.grid input:focus,.grid select:focus{outline:0;border-color:#ffb300;box-shadow:0 0 0 4px rgba(255,179,0,.25)}
+#go,#pnrGo,button.wide{min-height:46px;border-radius:12px;box-shadow:0 2px 0 rgba(0,0,0,.18);transition:transform .08s,filter .15s}
+#go:hover,#pnrGo:hover,button.wide:hover{filter:brightness(1.04)}
+.card{border-radius:var(--r);border:1px solid var(--hair);box-shadow:0 1px 2px rgba(15,30,60,.05),0 8px 24px rgba(15,30,60,.06)}
+@media (prefers-color-scheme:dark){.card{box-shadow:0 1px 0 rgba(255,255,255,.03) inset}}
+.name{letter-spacing:-.2px}
+.no{display:inline-block;background:rgba(11,92,171,.1);padding:1px 9px;border-radius:6px;font-size:12px;letter-spacing:1.2px}
+@media (prefers-color-scheme:dark){.no{background:rgba(141,182,234,.14)}}
+.trip .no{display:inline-block;padding-right:9px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.big::before{display:none}
+.stat,.kv{border-radius:12px}
+.kv small,.stat small,.rt small,.tm em,.dc small{text-transform:uppercase;letter-spacing:.6px;font-size:10.5px;font-weight:700}
+.rt{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.upd{padding-top:10px;border-top:1px solid var(--hair)}
+.mini{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:4px 14px}
+.mini .i{width:15px;height:15px}
+.mini:hover{background:var(--soft)}
+.alert{display:flex;gap:8px;align-items:flex-start;line-height:1.35}
+.alert .i{width:18px;height:18px;margin-top:1px}
+/* icon-only buttons: 44px tap target */
+.trip .rf,.trip .x{width:40px;height:40px;display:grid;place-items:center;padding:0;border-radius:10px;top:6px}
+.trip .x{right:6px}.trip .rf{right:44px}
+.trip .rf:hover,.trip .x:hover{background:var(--soft);color:var(--text)}
+.trip .rf .i,.trip .x .i{width:19px;height:19px}
+.trip{transition:transform .12s,box-shadow .12s}
+.trip:hover{transform:translateY(-1px)}
+.swap{display:grid;place-items:center}.swap .i{width:18px;height:18px}
+.chev{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--soft)}
+.chev .i{width:18px;height:18px}
+.tr.open .chev{background:var(--blue);color:#fff}
+.tr:hover{box-shadow:0 1px 2px rgba(15,30,60,.06),0 10px 28px rgba(15,30,60,.1)}
+.trh{cursor:pointer}
+.tl h2,.shd h2{letter-spacing:-.1px}
+.shd{margin:18px 4px 2px}
+.shd h2{font-size:17px}
+/* timeline polish */
+.stn.here .sn{color:var(--go)}
+.pf{border-radius:6px;font-size:11px}
+.tm div{margin-bottom:8px}
+/* better empty state */
+.empty{margin-top:64px}
+.empty svg{width:72px;height:72px;padding:16px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);opacity:1;color:var(--blue)}
+@media (prefers-color-scheme:dark){.empty svg{color:#8db6ea}}
+.empty p{max-width:320px;margin:14px auto 0;line-height:1.5}
+/* chips in header */
+.recent{margin-top:12px}
+.chip{min-height:30px}
+/* skeleton + focus */
+.sk{border-radius:12px}
+button:focus-visible,.trh:focus-visible{outline:3px solid #ffb300;outline-offset:2px}
+@media (max-width:380px){
+  main{padding-left:10px;padding-right:10px}
+  .wrap{overflow-x:clip}
+  .hero{padding:14px}
+  .name{font-size:19px}
+  .tt b{font-size:18px}
+}
+body{overflow-x:hidden}
+
+/* ===== Live status: Where-is-my-train style ===== */
+.lvcard{padding:16px}
+.lv-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.lv-status{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding:14px 16px;border-radius:14px}
+.lv-status.ok{background:var(--go-bg);color:var(--go)}
+.lv-status.mid{background:var(--warn-bg);color:var(--warn)}
+.lv-status.bad{background:var(--late-bg);color:var(--late)}
+.lv-status b{display:block;font-size:26px;line-height:1.1;font-weight:800;letter-spacing:-.3px}
+.lv-status span{font-size:13px;font-weight:700;opacity:.85}
+.lv-status .spd{text-align:right;padding-left:14px;border-left:2px solid currentColor;border-left-color:color-mix(in srgb,currentColor 25%,transparent)}
+.lv-status .spd b{font-size:24px}
+.lv-pos{display:flex;gap:12px;align-items:center;margin-top:14px}
+.lv-pos svg{flex:none;width:30px;height:30px;color:var(--blue);padding:6px;background:var(--soft);border-radius:10px;box-sizing:content-box}
+@media (prefers-color-scheme:dark){.lv-pos svg{color:#8db6ea}}
+.lv-pos b{display:block;font-size:16px;line-height:1.2}
+.lv-pos small{color:var(--muted);font-size:13px}
+.lbar{position:relative;height:8px;background:var(--line);border-radius:99px;margin:22px 14px 20px}
+.lbar i{position:absolute;left:0;top:0;bottom:0;background:var(--go);border-radius:99px}
+.lbar b{position:absolute;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 4px var(--card),0 2px 6px rgba(0,0,0,.3)}
+.lbar b svg{width:16px;height:16px}
+.lbar-l{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px}
+.lvcard .next{margin-top:14px}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--go);margin-right:6px;animation:pulse 1.6s infinite}
+.lvcard .upd{font-size:12px}
+/* coach position */
+.coachcard{margin-top:12px;padding:14px 0 14px}
+.cc-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 16px}
+.cc-h h2{margin:0;font-size:16px;font-weight:800}
+.cc-h small{color:var(--muted);font-size:12px}
+.cz{display:flex;gap:3px;overflow-x:auto;padding:12px 16px 8px;scrollbar-width:thin}
+.cz span{flex:none;min-width:42px;height:44px;padding:0 8px;display:grid;place-items:center;border-radius:6px;font-weight:800;font-size:13px;color:#fff;background:#6b7683;position:relative}
+.cz span::after{content:"";position:absolute;right:-4px;top:50%;width:4px;height:3px;background:var(--rail);margin-top:-1px}
+.cz span:last-child::after{display:none}
+.cz .eng{background:#1b2129;min-width:54px;border-radius:14px 6px 6px 14px}
+.cz .ac{background:#0b5cab}.cz .ac3{background:#0e8a8a}.cz .sl{background:#d9730d}.cz .cc{background:#7a4cc2}.cz .gen{background:#2e8b57}.cz .util{background:#7b8794}
+@media (prefers-color-scheme:dark){.cz .eng{background:#e6e9ee;color:#111}}
+.cleg{display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 16px 0;font-size:11px;font-weight:700;color:var(--muted)}
+.cleg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:#6b7683}
+.cleg .ac::before{background:#0b5cab}.cleg .ac3::before{background:#0e8a8a}.cleg .sl::before{background:#d9730d}.cleg .cc::before{background:#7a4cc2}.cleg .gen::before{background:#2e8b57}.cleg .util::before{background:#7b8794}
+/* station rows */
+.ntag,.etag{display:inline-block;margin-left:8px;padding:0 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;vertical-align:2px}
+.ntag{background:var(--blue);color:#fff}
+.etag{background:var(--soft);color:var(--muted)}
+.stn.next .sn{color:var(--text)}
+.dl.ontime{color:var(--go)}
+/* sticky mini bar */
+.minibar{position:fixed;left:0;right:0;top:0;z-index:40;display:none;align-items:center;gap:10px;padding:max(8px,env(safe-area-inset-top)) 14px 8px;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.minibar.show{display:flex}
+.minibar b{font-size:13px;color:var(--blue);letter-spacing:1px}
+@media (prefers-color-scheme:dark){.minibar b{color:#8db6ea}}
+.minibar .mt{flex:1;min-width:0;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Jump button */
+#jump{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));background:var(--blue);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:800;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none;z-index:5;opacity:.94}
+#jump.show{display:flex;gap:5px;align-items:center}
+#jump svg{width:15px;height:15px}
+@media (max-width:420px){.sn{padding-right:2px}main{padding-bottom:110px}}
+
+.sk{background:linear-gradient(90deg,var(--line) 25%,var(--soft) 50%,var(--line) 75%);background-size:200% 100%;animation:sh 1.2s infinite;border-radius:10px}
+@keyframes sh{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="train" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C8 2 4 2.5 4 6v9.5A3.5 3.5 0 0 0 7.5 19L6 20.5V21h2l2-2h4l2 2h2v-.5L16.5 19a3.5 3.5 0 0 0 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 16a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5-5H6V6h5v5zm2 0V6h5v5h-5zm3.5 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M8 4v16m0 0l-3-3m3 3l3-3M16 20V4m0 0l-3 3m3-3l3 3"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 8v5m0 3.5v.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></symbol>
+</svg>
+
+<header><div class="wrap">
+  <div class="brand"><span class="logo"><svg><use href="#train"/></svg></span><span>Chalo Rail<small>Train ki khabar · PNR · Seats</small></span></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="live" aria-selected="true">Live status</button>
+    <button role="tab" data-tab="pnr" aria-selected="false">PNR</button>
+    <button role="tab" data-tab="seats" aria-selected="false">Trains &amp; Seats</button>
+  </nav>
+  <div class="panel" data-panel="live">
+    <div class="search">
+      <input id="num" inputmode="numeric" maxlength="5" placeholder="Train number" aria-label="Train number" autocomplete="off">
+      <button id="go">Dekho</button>
+    </div>
+    <div class="recent" id="recent" aria-label="Pichli trains"></div>
+  </div>
+  <div class="panel" data-panel="pnr" hidden>
+    <div class="search">
+      <input id="pnr" inputmode="numeric" maxlength="10" placeholder="10 ank ka PNR" aria-label="PNR number" autocomplete="off" style="letter-spacing:2px;font-size:20px">
+      <button id="pnrGo">Dekho</button>
+    </div>
+  </div>
+  <form class="panel" data-panel="seats" id="seatForm" hidden>
+    <div class="route">
+      <label class="ac">Kahan se<input id="sFrom" placeholder="Station ka naam ya code" autocomplete="off" autocapitalize="words" role="combobox" aria-expanded="false"><ul class="sug" hidden></ul></label>
+      <button type="button" id="swap" class="swap" aria-label="Station badlo"><svg class="i"><use href="#i-swap"/></svg></button>
+      <label class="ac">Kahan tak<input id="sTo" placeholder="Station ka naam ya code" autocomplete="off" autocapitalize="words" role="combobox" aria-expanded="false"><ul class="sug" hidden></ul></label>
+    </div>
+    <div class="grid" style="margin-top:8px">
+      <label>Date<input id="sDate" type="date"></label>
+      <label>Quota<select id="sQuota"><option value="GN">General</option><option value="TQ">Tatkal</option><option value="PT">Premium Tatkal</option><option value="LD">Ladies</option><option value="SS">Senior Citizen</option></select></label>
+    </div>
+    <button id="seatGo" type="submit" class="wide">Trains dhoondo</button>
+  </form>
+</div></header>
+
+<main class="wrap">
+  <div id="msg" role="status" aria-live="polite"></div>
+  <div id="out">
+    <div class="empty"><svg><use href="#train"/></svg><p>Upar train number daalo (jaise 12301) aur live location, late/time par, aur har station ka time dekho.</p></div>
+  </div>
+</main>
+<div id="mini" class="minibar" aria-hidden="true"></div>
+<button id="jump" aria-label="Train ki jagah par jao"><svg><use href="#pin"/></svg>Train kahan</button>
+
+<script>
+const $=id=>document.getElementById(id);
+const num=$('num'),go=$('go'),msg=$('msg'),out=$('out'),recent=$('recent'),jump=$('jump');
+const TZ='Asia/Kolkata';
+const tm=s=>s?new Date(s).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:TZ}):'--';
+const dayKey=s=>new Date(s).toLocaleDateString('en-CA',{timeZone:TZ});
+const dayLbl=s=>new Date(s).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',timeZone:TZ});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtMin=m=>{m=Math.round(m);if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+' ghanta'+(r?' '+r+' min':'')};
+const add=(s,m)=>new Date(new Date(s).getTime()+m*60000).toISOString();
+function say(t,err){msg.textContent=t;msg.className=err?'err':''}
+
+function getRecent(){try{return JSON.parse(localStorage.getItem('recent')||'[]')}catch{return[]}}
+function saveRecent(n){try{localStorage.setItem('recent',JSON.stringify([n,...getRecent().filter(x=>x!==n)].slice(0,6)))}catch{}drawRecent()}
+function drawRecent(){recent.innerHTML=getRecent().map(n=>`<button class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')}
+recent.addEventListener('click',e=>{const n=e.target.dataset?.n;if(n){num.value=n;load()}});
+
+num.addEventListener('input',()=>{num.value=num.value.replace(/\D/g,'').slice(0,5)});
+num.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+go.addEventListener('click',()=>load());
+
+function skeleton(){out.innerHTML=`<div class="card hero"><div class="sk" style="height:14px;width:25%"></div><div class="sk" style="height:24px;width:70%;margin-top:8px"></div><div class="sk" style="height:62px;margin-top:16px"></div><div class="next"><div class="sk" style="height:52px"></div><div class="sk" style="height:52px"></div><div class="sk" style="height:52px"></div></div></div>
+<div class="card tl" style="padding:16px"><div class="sk" style="height:200px"></div></div>`}
+
+let timer=null,io=null,io2=null,liveTrain=null; // liveTrain: box khali hone ke baad bhi refresh ke liye yaad rakho
+function hideMini(){if(io2){io2.disconnect();io2=null}$('mini').classList.remove('show')}
+async function load(silent,forced){
+  const n=forced||num.value;
+  if(!/^\d{5}$/.test(n)){say('Train number 5 ank ka daalo.',true);return}
+  clearTimeout(timer);go.disabled=true;
+  if(!silent){skeleton();say('');hideMini()}
+  try{
+    const r=await fetch('/api/live?train='+n);
+    const j=await r.json();
+    if(!j.success){out.innerHTML='';jump.classList.remove('show');say(j.error?.message||'Is train ka data nahi mila.',true);return}
+    say('');render(j.data,!silent);
+    liveTrain=n;num.value='';
+    saveRecent(n);history.replaceState(null,'','?train='+n);
+    timer=setTimeout(()=>load(true,n),60000);
+  }catch(e){
+    if(!silent){out.innerHTML='';jump.classList.remove('show');say('Internet check karo aur dobara try karo.',true)}
+  }finally{go.disabled=false}
+}
+
+function render(d,scroll){
+  const route=d.route||[],cur=d.currentLocation||{};
+  const delay=d.delayMinutes||0;
+  const curDist=cur.distanceFromOriginKm??0;
+  const atIdx=cur.status==='at-station'?route.findIndex(s=>s.stationCode===cur.stationCode):-1;
+  // train sits after the last stop that is at/behind it
+  let lastIdx=-1;route.forEach((s,i)=>{if((s.distance??0)<=curDist+0.05)lastIdx=i});
+  if(atIdx>=0)lastIdx=atIdx;
+  const total=d.train?.distance||route[route.length-1]?.distance||0;
+  const stat=String(d.status||'').toLowerCase();
+  const notRunning=stat&&stat!=='running';
+  const finished=lastIdx===route.length-1&&route.length>1;
+  const cls=delay>15?'bad':delay>5?'mid':'ok';
+  const pillTxt=notRunning?stat.replace(/[_-]/g,' '):delay>0?fmtMin(delay)+' late':'Time par';
+  const pillCls=notRunning?'mid':cls;
+
+  const prev=d.previousHalt, next=d.nextHalt;
+  const toNext=next?Math.max(0,Math.round(next.distance-curDist)):null;
+  const nextStop=route.find(s=>s.stationCode===next?.stationCode);
+  const nextEta=nextStop?(nextStop.actualArrival||add(nextStop.scheduledArrival||nextStop.scheduledDeparture,delay)):null;
+  const minsToNext=nextEta?Math.round((new Date(nextEta)-Date.now())/60000):null;
+
+  let statusMain,statusSub;
+  if(finished){statusMain='Manzil par pahunch gayi';statusSub=esc(route[lastIdx].stationName)}
+  else if(cur.status==='at-station'&&cur.stationName){statusMain=(cur.isHalt?'Station par khadi hai':'Station se guzar rahi hai');statusSub=esc(cur.stationName)}
+  else{statusMain='Chal rahi hai';statusSub=prev?`${esc(prev.stationName)} se nikal chuki`:''}
+
+  const pct=total?Math.min(100,Math.round(curDist/total*100)):0;
+
+  const spd=cur.speedKmh?Math.round(cur.speedKmh):0;
+  const delayBig=notRunning?esc(stat.replace(/[_-]/g,' ')):delay>0?esc(fmtMin(delay))+' late':'Time par';
+  const delaySub=notRunning?'train ki sthiti':delay>0?'time table se peeche chal rahi hai':'sahi samay par chal rahi hai';
+  const coaches=String(d.train?.coachPosition||'').split('-').filter(Boolean);
+  // coach ka rang: engine, AC (A/H/B/M), sleeper (S), chair car (C/E), general, guard/pantry
+  const coachCls=c=>/^(ENG|LOC)/.test(c)?'eng':/^(SLRD|SLR|EOG|GRD|PC|LPR|DVYN|VP|PAN|HCP)/.test(c)?'util':/^(GEN|UR|D\d|J\d)/.test(c)?'gen':/^(A|H)\d/.test(c)?'ac':/^(B|M)\d/.test(c)?'ac3':/^S\d/.test(c)?'sl':/^(C|E|EC)\d/.test(c)?'cc':'';
+  let h=`<section class="card lvcard" id="liveTop">
+    <div class="lv-head">
+      <div style="min-width:0"><span class="no">${esc(d.trainNumber)}</span><h1 class="name">${esc(d.trainName)}</h1><div class="type">${esc(d.train?.source?.name)} → ${esc(d.train?.destination?.name)}</div></div>
+      <button class="mini" id="re"><svg class="i"><use href="#i-refresh"/></svg>Refresh</button>
+    </div>
+    <div class="lv-status ${pillCls}">
+      <div><b>${delayBig}</b><span>${delaySub}</span></div>
+      ${spd?`<div class="spd"><b>${spd}</b><span>km/h</span></div>`:''}
+    </div>
+    <div class="lv-pos"><svg><use href="#train"/></svg><div><b>${statusMain}</b><small>${statusSub}</small></div></div>
+    ${total?`<div class="lbar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i><b style="left:${pct}%"><svg><use href="#train"/></svg></b></div>
+    <div class="lbar-l"><span>${esc(d.train?.source?.code||'')}</span><span>${Math.round(curDist)} / ${Math.round(total)} km · ${pct}%</span><span>${esc(d.train?.destination?.code||'')}</span></div>`:''}
+    <div class="next">
+      <div class="kv"><small>Agla station</small><b>${esc(next?.stationName||'--')}</b></div>
+      <div class="kv"><small>Kitni door</small><b>${toNext!=null?toNext+' km':'--'}</b></div>
+      <div class="kv"><small>Pahunchegi</small><b>${nextEta?tm(nextEta):'--'}${minsToNext!=null&&minsToNext>0?`<span style="font-weight:400;font-size:12px;color:var(--muted)"> (${fmtMin(minsToNext)})</span>`:''}</b></div>
+    </div>
+    ${(d.exceptions||[]).map(x=>`<div class="alert"><svg class="i"><use href="#i-alert"/></svg>${esc(x.message)}</div>`).join('')}
+    <div class="upd"><span><i class="live-dot"></i>Update: ${tm(d.lastUpdatedAt)} · ${d.trackingMode==='real-time'||d.isLive?'Live':'Schedule'}</span><span>Har 1 min mein auto-refresh</span></div>
+  </section>`;
+  const miniTxt=`<b>${esc(d.trainNumber)}</b><span class="mt">${esc(d.trainName)}</span><span class="pill ${pillCls}">${notRunning?esc(stat.replace(/[_-]/g,' ')):delay>0?esc(fmtMin(delay))+' late':'Time par'}</span>`;
+
+  if(coaches.length){
+    h+=`<section class="card coachcard"><div class="cc-h"><h2>Coach position</h2><small>Engine aage, guard peeche</small></div>
+      <div class="cz" role="list" aria-label="Coach position">${coaches.map(c=>`<span role="listitem" class="${coachCls(c)}">${esc(c)}</span>`).join('')}</div>
+      <div class="cleg"><span class="ac">AC 1/2</span><span class="ac3">AC 3</span><span class="sl">Sleeper</span><span class="cc">Chair car</span><span class="gen">General</span><span class="util">Guard/Pantry</span></div></section>`;
+  }
+  // timeline
+  let lastDay='';
+  const rows=[];
+  route.forEach((s,i)=>{
+    const done=i<=lastIdx&&!(i===lastIdx&&cur.status!=='at-station'&&false);
+    const here=i===atIdx;
+    const sA=s.scheduledArrival,sD=s.scheduledDeparture,aA=s.actualArrival,aD=s.actualDeparture;
+    const refTime=sA||sD;
+    if(refTime){const dk=dayKey(refTime);if(dk!==lastDay){lastDay=dk;rows.push(`<li class="dayhd" style="padding:6px 4px 0;color:var(--muted);font-size:12px;font-weight:700">${dayLbl(refTime)}</li>`)}}
+    const tcell=(label,sched,act)=>{
+      if(!sched)return '';
+      if(act){const ch=tm(act)!==tm(sched);const l=(new Date(act)-new Date(sched))/60000>5;return `<div><em>${label}</em><b class="${l?'late':'ontime'}">${tm(act)}</b>${ch?`<s>${tm(sched)}</s>`:''}</div>`}
+      const e=delay>0?add(sched,delay):sched;
+      return `<div><em>${label}</em><span class="exp">${delay>0?'~':''}${tm(e)}</span>${delay>0?`<s>${tm(sched)}</s>`:''}</div>`};
+    const first=i===0,lastS=i===route.length-1;
+    const tcol=(first?'':tcell('Aayi',sA,aA))+(lastS?'':tcell('Gayi',sD,aD))||tcell('',refTime,aA||aD);
+    const dl=s.delayArrival??s.delayDeparture;
+    const isNext=!finished&&i===lastIdx+1;
+    let halt='';
+    if(sA&&sD){const hm=Math.round((new Date(sD)-new Date(sA))/60000);if(hm>0&&hm<600)halt=` · ${hm} min ruki`}
+    rows.push(`<li class="stn ${done?'done':''} ${here?'here':''} ${isNext?'next':''}" data-i="${i}">
+      <div class="tm">${tcol}</div>
+      <div class="rl"><span class="dot"></span></div>
+      <div class="info"><div class="sn">${esc(s.stationName)}${isNext?'<span class="ntag">Agla</span>':''}${first?'<span class="etag">Shuru</span>':lastS?'<span class="etag">Manzil</span>':''}</div>
+        <div class="meta">${esc(s.stationCode)} · ${Math.round(s.distance??0)} km${halt}${s.platform?`<span class="pf">PF ${esc(s.platform)}</span>`:''}</div>
+        ${(aA||aD)?(dl>5?`<div class="dl late">${esc(fmtMin(dl))} late</div>`:`<div class="dl ontime">Time par</div>`):''}</div></li>`);
+    // marker between this stop and the next
+    if(i===lastIdx&&atIdx<0&&!finished){
+      const nx=route[i+1];
+      rows.push(`<li class="mk" id="here">
+        <div class="tm"></div><div class="rl"><span class="ic"><svg><use href="#train"/></svg></span></div>
+        <div class="info"><span class="tag">Train yahan hai</span>
+        <div class="meta">${nx?`${esc(nx.stationName)} tak ${Math.max(0,Math.round(nx.distance-curDist))} km baaki`:''}${cur.speedKmh?` · ${Math.round(cur.speedKmh)} km/h`:''}</div></div></li>`);
+    }
+  });
+  // train before first stop (not started) or at a station
+  h+=`<section class="card tl"><h2>Poora rasta<small>${route.length} stations</small></h2><ol>${rows.join('')}</ol></section>`;
+  out.innerHTML=h;
+  $('re').onclick=()=>load(false,liveTrain);
+  // scroll karne par upar chhoti sticky bar: train + late status hamesha dikhe
+  const mini=$('mini');mini.innerHTML=miniTxt;
+  if(io2)io2.disconnect();
+  io2=new IntersectionObserver(([e])=>mini.classList.toggle('show',!e.isIntersecting&&e.boundingClientRect.top<0),{threshold:0});
+  io2.observe($('liveTop'));
+
+  const target=document.getElementById('here')||out.querySelector('.stn.here');
+  if(target){target.id=target.id||'here';
+    if(io)io.disconnect();
+    io=new IntersectionObserver(([e])=>jump.classList.toggle('show',!e.isIntersecting),{threshold:.5});
+    io.observe(target);
+    if(scroll)setTimeout(()=>target.scrollIntoView({block:'center',behavior:'smooth'}),350);
+  }else jump.classList.remove('show');
+}
+jump.onclick=()=>document.getElementById('here')?.scrollIntoView({block:'center',behavior:'smooth'});
+
+/* ---------- Tabs ---------- */
+const EMPTY={
+  live:'Upar train number daalo (jaise 12301) aur live location, late/time par, aur har station ka time dekho.',
+  pnr:'Apna 10 ank ka PNR daalo aur booking, seat/berth aur chart ka status dekho.',
+  seats:'Kahan se aur kahan tak ka station aur date chuno. Trains ki list aayegi, kisi par tap karke class aur seat availability dekho.'};
+function setTab(t,keep){
+  clearTimeout(timer);hideMini();
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.dataset.panel!==t);
+  if(!keep){say('');jump.classList.remove('show');out.innerHTML=`<div class="empty"><svg><use href="#train"/></svg><p>${EMPTY[t]}</p></div>`;if(t==='pnr')showSaved()}
+}
+document.querySelector('.tabs').addEventListener('click',e=>{const t=e.target.dataset?.tab;if(t)setTab(t)});
+
+async function call(url){
+  const r=await fetch(url);const j=await r.json();
+  if(!j.success){
+    const c=j.error?.code||'';
+    if(/TOO_MANY/.test(c))throw new Error('Bahut zyada requests ho gayi. Ek minute ruk kar dobara try karo.');
+    throw new Error(/PNR_FLUSHED/.test(c)?'Ye PNR purana ho gaya hai (safar ke baad record hat jaata hai).':/Invalid Journey Class/i.test(j.error?.message||'')?'Is train mein ye class nahi hai. Doosri class chuno.':j.error?.message||'Data nahi mila.');
+  }
+  return j.data;
+}
+function fail(e){out.innerHTML='';say(e instanceof TypeError?'Internet check karo aur dobara try karo.':e.message,true)}
+
+/* ---------- PNR ---------- */
+const pnrIn=$('pnr');
+pnrIn.addEventListener('input',()=>{pnrIn.value=pnrIn.value.replace(/\D/g,'').slice(0,10)});
+pnrIn.addEventListener('keydown',e=>{if(e.key==='Enter')loadPnr()});
+$('pnrGo').addEventListener('click',loadPnr);
+
+const getSaved=()=>{try{return JSON.parse(localStorage.getItem('pnrs')||'[]')}catch{return[]}};
+const putSaved=a=>{try{localStorage.setItem('pnrs',JSON.stringify(a))}catch{}};
+const isSaved=p=>getSaved().some(r=>r.pnr===p);
+const pKind=p=>p.isCancelled?'CAN':p.isConfirmed?'CNF':p.isRAC?'RAC':p.isWaitlisted?'WL':'';
+const pCls=k=>({CNF:'ok',RAC:'mid',WL:'bad',CAN:'bad'}[k]||'mid');
+const pText=p=>{const k=pKind(p),c=p.current||{};return k==='WL'||k==='RAC'?k+' '+(c.berthNo??''):k==='CNF'?'CNF':k==='CAN'?'Cancel':(c.status||'--')};
+const pDetail=p=>{const c=p.current||{},b=p.booking||{};
+  if(pKind(p)==='CNF')return [c.coach||c.coachNo,c.berthNo,c.berthCode].filter(Boolean).join(' / ')||c.formatted||'';
+  return 'Booking: '+(b.formatted||b.status||'--')};
+function overall(ps){const k=ps.map(pKind);if(!k.length)return['--','mid'];
+  if(k.every(x=>x==='CAN'))return['Cancel','bad'];
+  if(k.every(x=>x==='CNF'))return['Confirmed','ok'];
+  if(k.includes('WL'))return['Waitlist','bad'];
+  if(k.includes('RAC'))return['RAC','mid'];return['Confirmed','ok']}
+const daysLeft=s=>{if(!s)return'';const d=Math.ceil((new Date(s+'T23:59:00+05:30')-Date.now())/864e5);return d>1?d+' din baaki':d===1?'Kal/aaj':'Safar ho chuka'};
+const summarize=d=>{const t=d.train||{};return{pnr:d.pnrNumber,train:t.number,name:t.name,date:t.journeyDate,from:t.boardingPoint?.code||t.source?.code,to:t.reservationUpto?.code||t.destination?.code,cls:t.journeyClass,at:d.generatedAt,st:(d.passengers||[]).map(p=>({t:pText(p),c:pCls(pKind(p))}))}};
+// card ka rang: confirm = hara; waitlist = chance ke hisaab se; purani/cancel trip alag
+const tone=r=>{
+  const s=r.st||[];
+  if(!s.length||daysLeft(r.date)==='Safar ho chuka')return'na';
+  if(s.every(x=>x.t==='Cancel'))return'bad';
+  if(s.every(x=>x.c==='ok'))return'ok';
+  return r.pc!=null?chanceCls(r.pc):'mid';
+};
+const needsChance=ps=>ps.some(p=>p.isWaitlisted||p.isRAC)&&!ps.every(p=>p.isCancelled);
+const setPc=(pnr,pc)=>{const a=getSaved(),i=a.findIndex(x=>x.pnr===pnr);if(i>=0){a[i].pc=pc;putSaved(a)}};
+// ek saved PNR ka status + chance dono taaza karo (2 API requests)
+async function refreshRecord(pnr){
+  const d=await call('/api/pnr?pnr='+pnr);
+  upsertSaved(d);
+  const ps=d.passengers||[];
+  if(needsChance(ps)){
+    try{const p=await call('/api/prediction?pnr='+pnr);setPc(pnr,Math.max(0,Math.min(100,Math.round(p.probabilityPercent??(p.probability||0)*100))))}
+    catch(e){if(/zyada/.test(e.message))throw e}
+  }else setPc(pnr,null);
+  return d;
+}
+// PNR dekhte hi apne aap save (nayi trip sabse upar); pehle se saved ho to wahi update
+function upsertSaved(d,addNew){const a=getSaved(),r=summarize(d),i=a.findIndex(x=>x.pnr===r.pnr);if(i>=0){r.pc=a[i].pc;a[i]=r}else if(addNew)a.unshift(r);else return;putSaved(a)}
+
+function showSaved(){
+  history.replaceState(null,'',location.pathname);
+  const a=getSaved();
+  if(!a.length){out.innerHTML=`<div class="empty"><svg><use href="#train"/></svg><p>${EMPTY.pnr}<br>PNR dekhte hi wo yahan apne aap save ho jaayega.</p></div>`;return}
+  out.innerHTML=`<div class="shd"><h2>Meri trips</h2><button class="mini" id="refAll"><svg class="i"><use href="#i-refresh"/></svg>Sab refresh</button></div>`+a.map(r=>`<section class="card trip t-${tone(r)}" data-open="${esc(r.pnr)}" role="button" tabindex="0">
+    <button class="rf" data-ref="${esc(r.pnr)}" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button><button class="x" data-del="${esc(r.pnr)}" aria-label="Hatao"><svg class="i"><use href="#i-close"/></svg></button>
+    <span class="no">${esc(r.train)} · PNR ${esc(r.pnr)}</span>
+    <div class="name" style="font-size:18px">${esc(r.name)}</div>
+    <div class="type">${esc(r.from)} → ${esc(r.to)} · ${r.date?dayLbl(r.date):''} · ${esc(r.cls)} · ${daysLeft(r.date)}</div>
+    <div class="chips">${(r.st||[]).map(s=>`<span class="pill ${esc(s.c)}">${esc(s.t)}</span>`).join('')}${r.pc!=null&&(r.st||[]).some(s=>/^(WL|RAC)/.test(s.t))?`<span class="pill ${chanceCls(r.pc)}" title="Confirm hone ka chance">Chance ${r.pc}% · ${chanceLabel(r.pc)}</span>`:''}</div>
+    ${r.at?`<div class="upl">Update: ${tm(r.at)}</div>`:''}</section>`).join('');
+}
+out.addEventListener('click',async e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){e.stopPropagation();putSaved(getSaved().filter(r=>r.pnr!==del.dataset.del));showSaved();return}
+  const rf=e.target.closest('[data-ref]');
+  if(rf){
+    e.stopPropagation();
+    if(rf.disabled)return;
+    rf.disabled=true;rf.classList.add('spin');say('');
+    try{await refreshRecord(rf.dataset.ref);showSaved()}
+    catch(err){say(err.message,true);rf.disabled=false;rf.classList.remove('spin')}
+    return}
+  const ra=e.target.closest('#refAll');
+  if(ra){
+    ra.disabled=true;ra.textContent='Ho raha hai...';say('');
+    // purani (safar ho chuki) trips chhod do, taaki 10 requests/minute ki limit na khatam ho
+    for(const r of getSaved().filter(x=>daysLeft(x.date)!=='Safar ho chuka')){
+      try{await refreshRecord(r.pnr)}catch(err){say(err.message,true);break}
+    }
+    showSaved();return}
+  if(e.target.closest('#rfBtn')){
+    const d=window._pnr;if(!d)return;
+    pnrIn.value=d.pnrNumber;loadPnr();return}
+  if(e.target.closest('#delBtn')){
+    const d=window._pnr;if(!d)return;
+    putSaved(getSaved().filter(r=>r.pnr!==d.pnrNumber));showSaved();return}
+  if(e.target.closest('#backBtn')){showSaved();return}
+  const op=e.target.closest('[data-open]');
+  if(op){pnrIn.value=op.dataset.open;loadPnr()}
+});
+
+async function loadPnr(){
+  const n=pnrIn.value;
+  if(!/^\d{10}$/.test(n)){say('PNR 10 ank ka daalo.',true);return}
+  $('pnrGo').disabled=true;skeleton();say('');
+  try{
+    const d=await call('/api/pnr?pnr='+n);
+    window._pnr=d;upsertSaved(d,true);pnrIn.value='';
+    const t=d.train||{},c=d.charting||{},ps=d.passengers||[];
+    const [ot,oc]=overall(ps);
+    const needPred=ps.some(p=>p.isWaitlisted||p.isRAC)&&!ps.every(p=>p.isCancelled);
+    out.innerHTML=`<section class="card hero tone t-${needPred?'mid':oc}" id="heroCard">
+      <div class="hrow"><div><span class="no">PNR ${esc(d.pnrNumber||n)}</span><h1 class="name">${esc(t.number)} ${esc(t.name)}</h1>
+      <div class="type">${t.journeyDate?dayLbl(t.journeyDate)+' · ':''}Class ${esc(t.journeyClass||'--')} · ${daysLeft(t.journeyDate)}</div></div>
+      <span class="pill ${oc}">${ot}</span></div>
+      <div class="rt"><span>${esc(t.boardingPoint?.name||t.source?.name)}<small>Chadhna</small></span><span>${esc(t.reservationUpto?.name||t.destination?.name)}<small>Utarna</small></span></div>
+      <div class="upd"><span>${esc(c.status||'')}${t.bookingFare?` · Fare ₹${esc(t.bookingFare)}`:''}</span><span>Update: ${tm(d.generatedAt)}</span></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="mini" id="backBtn"><svg class="i"><use href="#i-back"/></svg>Meri trips</button><button class="mini" id="rfBtn"><svg class="i"><use href="#i-refresh"/></svg>Refresh</button><button class="mini" id="delBtn">Hatao</button>${c.chartUrl?`<a class="link" style="margin:0;align-self:center" href="${esc(c.chartUrl)}" target="_blank" rel="noopener">Chart ↗</a>`:''}</div>
+    </section>
+    ${needPred?`<section class="card pred" id="pred"><div class="sk" style="height:96px;margin:16px"></div></section>`:''}
+    <section class="card tl"><div class="sec"><h2>Yatri (${ps.length})</h2>${ps.map((p,i)=>`<div class="pax">
+      <div class="who">Yatri ${esc(p.serialNumber??i+1)}<small>${esc(pDetail(p))}</small></div>
+      <div class="berth"><span class="pill big ${pCls(pKind(p))}">${esc(pText(p))}</span></div></div>`).join('')}</div></section>`;
+    history.replaceState(null,'','?pnr='+n);
+    if(needPred)loadPred(n,ps.length);
+  }catch(e){fail(e)}finally{$('pnrGo').disabled=false}
+}
+
+/* confirm hone ka chance (sirf waitlist/RAC wale PNR ke liye) */
+const chanceLabel=p=>p<20?'Bahut kam':p<40?'Kam':p<60?'Theek-thak':p<80?'Achha':'Bahut achha';
+const chanceCls=p=>p<40?'bad':p<70?'mid':'ok';
+async function loadPred(n,count){
+  const box=$('pred');
+  try{
+    const d=await call('/api/prediction?pnr='+n);
+    if($('pred')!==box)return; // user doosre PNR/tab par chala gaya
+    const pc=Math.max(0,Math.min(100,Math.round(d.probabilityPercent??(d.probability||0)*100)));
+    const a=getSaved(),i=a.findIndex(x=>x.pnr===n);if(i>=0){a[i].pc=pc;putSaved(a)}
+    const k=chanceCls(pc);
+    const hc=$('heroCard');if(hc)hc.className='card hero tone t-'+k;
+    box.innerHTML=`<div class="pr">
+      <div class="pr-top"><h2>Confirm hone ka chance</h2><span class="pill ${k}">${chanceLabel(pc)}</span></div>
+      <div class="pr-main"><div class="pr-num ${k}">${pc}<small>%</small></div><div class="pr-side">${esc(d.header||'')}<small>${count>1?'Ye pehle yatri ka hai, baaki ka WL thoda peeche hai.':''}</small></div></div>
+      <div class="gauge ${k}" role="progressbar" aria-valuenow="${pc}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pc}%"></i></div>
+      <p class="pr-note">Ye purane booking data par based andaza hai, pakka nahi. Chart banne tak status badalta rehta hai.</p></div>`;
+  }catch(e){
+    if($('pred')===box)box.innerHTML=`<p class="note">Confirm hone ka chance abhi nahi mil paya. ${esc(e.message)}</p>`;
+  }
+}
+
+/* ---------- Trains & Seats (IRCTC jaisa) ---------- */
+const iso=d=>d.toLocaleDateString('en-CA');
+const sDate=$('sDate');
+sDate.min=iso(new Date());sDate.max=iso(new Date(Date.now()+120*864e5));sDate.value=iso(new Date(Date.now()+864e5));
+const dpart=(d,o)=>new Date(d+'T00:00:00+05:30').toLocaleDateString('en-IN',{...o,timeZone:TZ});
+const hm=m=>Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m';
+
+function parseSeat(x){
+  const s=String(x.status||''),m=s.match(/(?:AVAILABLE|AVL)\D*(\d+)/i),r=s.match(/RAC\D*(\d+)/i);
+  if(x.isAvailable||m)return{k:'av',main:'Available',sub:m?m[1]+' seat':s};
+  if(/REGRET/i.test(s))return{k:'rg',main:'Regret',sub:'Booking band'};
+  if(r&&!/WL/i.test(s))return{k:'wl',main:'RAC '+r[1],sub:s,ch:[90]};
+  if(x.waitlistNumber){
+    // andaza: chance = e^(-WL/30). Sirf waitlist number se; asli PNR prediction (WL 43 = 25%) se milta-julta
+    const pc=Math.max(1,Math.min(95,Math.round(100*Math.exp(-x.waitlistNumber/30))));
+    return{k:'wl',main:'WL '+x.waitlistNumber,sub:s.replace(/\//g,' / '),ch:[pc]};
+  }
+  return{k:/NOT|CAN|DEP|CLOSED/i.test(s)?'rg':'',main:s||'--',sub:''};
+}
+
+/* station suggestions */
+function attachAC(input){
+  const ul=input.parentElement.querySelector('.sug');let t,seq=0;
+  const close=()=>{ul.hidden=true;input.setAttribute('aria-expanded','false')};
+  input.addEventListener('input',()=>{
+    delete input.dataset.code;
+    clearTimeout(t);const q=input.value.trim();
+    if(q.length<2){close();return}
+    t=setTimeout(async()=>{
+      const my=++seq;
+      try{
+        const list=await call('/api/stations?q='+encodeURIComponent(q));
+        if(my!==seq)return;
+        ul.innerHTML=list.slice(0,8).map(s=>`<li role="option" data-code="${esc(s.code)}" data-name="${esc(s.name)}"><b>${esc(s.name)}</b><span>${esc(s.code)}</span>${s.city&&s.city!==s.name?`<small>${esc(s.city)}</small>`:''}</li>`).join('');
+        ul.hidden=!list.length;input.setAttribute('aria-expanded',String(!ul.hidden));
+      }catch{close()}
+    },250);
+  });
+  ul.addEventListener('mousedown',e=>e.preventDefault());
+  ul.addEventListener('click',e=>{const li=e.target.closest('li');if(!li)return;input.value=li.dataset.name+' ('+li.dataset.code+')';input.dataset.code=li.dataset.code;close()});
+  input.addEventListener('blur',()=>setTimeout(close,150));
+}
+['sFrom','sTo'].forEach(id=>attachAC($(id)));
+$('swap').addEventListener('click',()=>{
+  const a=$('sFrom'),b=$('sTo'),v=a.value,c=a.dataset.code;
+  a.value=b.value;b.value=v;
+  if(b.dataset.code)a.dataset.code=b.dataset.code;else delete a.dataset.code;
+  if(c)b.dataset.code=c;else delete b.dataset.code;
+});
+// suggestion chuna nahi, sirf likha hai (jaise "ndls" ya "patna") to pehla match le lo
+async function resolveStation(i,label){
+  if(i.dataset.code)return i.dataset.code;
+  const v=i.value.trim();
+  if(v.length<2)throw new Error(label+' station daalo.');
+  const list=await call('/api/stations?q='+encodeURIComponent(v));
+  const hit=list.find(s=>s.code.toLowerCase()===v.toLowerCase())||list[0];
+  if(!hit)throw new Error('"'+v+'" naam ka station nahi mila.');
+  i.value=hit.name+' ('+hit.code+')';i.dataset.code=hit.code;return hit.code;
+}
+
+/* trains ki list */
+let ctx=null;const availCache=new Map();
+$('seatForm').addEventListener('submit',e=>{e.preventDefault();searchTrains()});
+async function searchTrains(){
+  if(!sDate.value){say('Date chuno.',true);return}
+  $('seatGo').disabled=true;skeleton();say('');
+  try{
+    const f=await resolveStation($('sFrom'),'Kahan se'),t=await resolveStation($('sTo'),'Kahan tak');
+    const date=sDate.value,quota=$('sQuota').value;
+    const d=await call(`/api/between?from=${f}&to=${t}&date=${date}`);
+    ctx={f,t,date,quota};
+    const list=d.trains||[];
+    const names=`${esc(d.from?.name||f)} → ${esc(d.to?.name||t)}`;
+    // search ho gaya: boxes khali (route/date upar result mein dikhta hai, "Badlo" se wapas bhar jaata hai)
+    ctx.fromName=`${d.from?.name||f} (${f})`;ctx.toName=`${d.to?.name||t} (${t})`;
+    $('sFrom').value='';$('sTo').value='';delete $('sFrom').dataset.code;delete $('sTo').dataset.code;
+    out.innerHTML=`<section class="card hero"><div class="hrow"><div><h1 class="name">${names}</h1><div class="type">${dpart(date,{weekday:'short',day:'numeric',month:'short'})} · ${list.length} trains</div></div><button class="mini" id="editSearch">Badlo</button></div></section>`+
+    (list.length?list.map(x=>{
+      const tr=x.train||{},fr=x.from||{},to=x.to||{},run=tr.runDays||[];
+      const plus=(to.day||1)-(fr.day||1);
+      return `<section class="card tr" data-tn="${esc(tr.number)}">
+        <button class="trh" data-toggle aria-expanded="false">
+          <div class="hrow" style="align-items:center"><div><span class="no">${esc(tr.number)}</span><div class="name" style="font-size:17px">${esc(tr.name)}</div></div><span class="chev"><svg class="i"><use href="#i-chev"/></svg></span></div>
+          <div class="tt"><div><b>${esc(fr.departure)}</b><small>${esc(fr.name)}</small></div><div class="dur"><small>${x.duration?hm(x.duration):''}</small><hr></div><div style="text-align:right"><b>${esc(to.arrival)}${plus>0?`<sup>+${plus}</sup>`:''}</b><small>${esc(to.name)}</small></div></div>
+          <div class="days">${['mon','tue','wed','thu','fri','sat','sun'].map((n,i)=>`<span class="${run.includes(n)?'on':''}">${'MTWTFSS'[i]}</span>`).join('')}<em>${esc(tr.type||'')}${x.totalHaltsBetween!=null?` · ${x.totalHaltsBetween} stop`:''}</em></div>
+        </button>
+        <div class="seatbox" hidden></div></section>`}).join(''):`<div class="empty"><p>Is date par in stations ke beech koi train nahi mili.</p></div>`);
+  }catch(e){fail(e)}finally{$('seatGo').disabled=false}
+}
+
+/* train kholne par uski classes aur availability */
+async function openTrain(card){
+  const box=card.querySelector('.seatbox'),btn=card.querySelector('[data-toggle]');
+  const open=box.hidden;
+  box.hidden=!open;card.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));
+  if(!open||card.dataset.ready)return;
+  box.innerHTML='<div class="sk" style="height:130px;margin:4px 16px 16px"></div>';
+  try{
+    const c=await call('/api/classes?train='+card.dataset.tn);
+    const cl=c.classes||[];
+    haltsByTrain.set(card.dataset.tn,c.halts||[]);
+    if(!cl.length){box.innerHTML=haltsHtml(card.dataset.tn,true)+'<p class="note">Is train mein reservation (seat booking) nahi hai.</p>';return}
+    card.dataset.ready='1';card.dataset.classes=JSON.stringify(cl);
+    showAvail(card,cl.includes('3A')?'3A':cl[0]);
+  }catch(e){box.innerHTML=`<p class="note err">${esc(e.message)}</p>`}
+}
+
+/* beech ke halts (kahan kahan rukti hai): chadhne se utarne ke station tak */
+const haltsByTrain=new Map();
+const toMin=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?+m[1]*60+ +m[2]:null};
+function haltsHtml(tn,open){
+  const all=haltsByTrain.get(tn)||[];
+  if(!all.length)return'';
+  const i=all.findIndex(s=>s.c===ctx.f),j=all.findIndex(s=>s.c===ctx.t);
+  const seg=i>=0&&j>i?all.slice(i,j+1):all;
+  const base=seg[0].km||0,d0=seg[0].dd||seg[0].ad||1;
+  const rows=seg.map((s,k)=>{
+    const first=k===0,last=k===seg.length-1;
+    const tmv=first?s.d:s.a||s.d;
+    const day=(first?s.dd:s.ad||s.dd||d0)-d0;
+    let stop='';
+    if(!first&&!last&&s.a&&s.d){const dm=((s.dd||s.ad)-(s.ad||s.dd))*1440+toMin(s.d)-toMin(s.a);if(dm>0&&dm<600)stop=dm+' min ruki'}
+    return `<li class="${first||last?'end':''}"><span class="ht">${esc(tmv||'--')}${day>0?`<sup>+${day}</sup>`:''}</span><span class="hd"></span><span class="hn">${esc(s.n)}<small>${esc(s.c)} · ${Math.round((s.km||0)-base)} km${s.pf?' · PF '+esc(s.pf):''}</small></span><span class="hs">${first?'Chadhna':last?'Utarna':stop}</span></li>`;
+  }).join('');
+  return `<details class="halts"${open?' open':''}><summary>Kahan kahan rukti hai <b>${Math.max(0,seg.length-2)} beech ke station</b></summary><ol>${rows}</ol></details>`;
+}
+async function showAvail(card,cls){
+  const box=card.querySelector('.seatbox'),cl=JSON.parse(card.dataset.classes||'[]');
+  card.dataset.cur=cls;
+  const hh=()=>haltsHtml(card.dataset.tn,card.dataset.haltsOpen!=='0');
+  const chips=hh()+`<div class="cls">${cl.map(c=>`<button data-cls="${esc(c)}" class="${c===cls?'on':''}">${esc(c)}</button>`).join('')}</div>`;
+  box.innerHTML=chips+'<div class="sk" style="height:120px;margin:0 16px 16px"></div>';
+  const key=[card.dataset.tn,ctx.f,ctx.t,ctx.date,cls,ctx.quota].join('|');
+  try{
+    let d=availCache.get(key);
+    if(!d){
+      const p=new URLSearchParams({train:card.dataset.tn,from:ctx.f,to:ctx.t,date:ctx.date,class:cls,quota:ctx.quota});
+      d=await call('/api/seats?'+p);availCache.set(key,d);
+    }
+    if(card.dataset.cur!==cls)return;
+    const cal=d.calendar||[];
+    box.innerHTML=chips+(cal.length?`<div class="strip">`+cal.map(x=>{const s=parseSeat(x);return `<div class="dc ${s.k}"><small>${dpart(x.date,{weekday:'short'})}</small><b>${dpart(x.date,{day:'numeric'})}</b><i>${dpart(x.date,{month:'short'})}</i><strong>${esc(s.main)}</strong><span>${esc(s.sub)}</span>${s.ch?`<em class="ch ${chanceCls(s.ch[0])}">~${s.ch[0]}%</em><span class="cl">${chanceLabel(s.ch[0])}</span>`:''}</div>`}).join('')+`</div>`:`<p class="note">Is date/class ke liye data nahi mila.</p>`)+
+      `<div class="legend"><span class="av">Available</span><span class="wl">RAC / Waitlist</span><span class="rg">Regret</span></div>
+       ${cal.some(x=>parseSeat(x).ch)?`<p class="note" style="padding-top:0">~ wala chance sirf waitlist number se lagaya hua andaza hai, pakka nahi. Asli percent booking ke baad PNR tab mein dikhta hai.</p>`:''}
+       <div style="padding:0 16px 16px"><a class="link" style="margin:0" href="https://www.irctc.co.in/nget/train-search" target="_blank" rel="noopener">IRCTC par book karo ↗</a></div>`;
+  }catch(e){
+    if(card.dataset.cur===cls)box.innerHTML=chips+`<p class="note err">${esc(e.message)}</p>`;
+  }
+}
+out.addEventListener('click',e=>{
+  if(!e.target.closest('#editSearch')||!ctx)return;
+  const a=$('sFrom'),b=$('sTo');
+  a.value=ctx.fromName;a.dataset.code=ctx.f;b.value=ctx.toName;b.dataset.code=ctx.t;sDate.value=ctx.date;
+  window.scrollTo({top:0,behavior:'smooth'});a.focus();
+});
+// halts khule/band hone ki yaad rakho, taaki class badalne par band na ho jaaye
+out.addEventListener('toggle',e=>{const d=e.target;if(d.classList?.contains('halts'))d.closest('.tr').dataset.haltsOpen=d.open?'1':'0'},true);
+out.addEventListener('click',e=>{
+  const card=e.target.closest('.tr');if(!card)return;
+  const c=e.target.closest('[data-cls]');
+  if(c){showAvail(card,c.dataset.cls);return}
+  if(e.target.closest('[data-toggle]'))openTrain(card);
+});
+
+drawRecent();
+const sp=new URLSearchParams(location.search);
+const q=sp.get('train'),qp=sp.get('pnr');
+if(qp&&/^\d{10}$/.test(qp)){setTab('pnr',true);pnrIn.value=qp;loadPnr()}
+else if(q&&/^\d{5}$/.test(q)){num.value=q;load()}
+</script>
+</body>
+</html>
