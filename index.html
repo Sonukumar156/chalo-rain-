@@ -379,6 +379,10 @@ body{overflow-x:hidden}
 .minibar b{font-size:13px;color:var(--blue);letter-spacing:1px}
 @media (prefers-color-scheme:dark){.minibar b{color:#8db6ea}}
 .minibar .mt{flex:1;min-width:0;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* limit note */
+.limit-note{display:flex;gap:10px;align-items:flex-start;margin:24px 2px 0;padding:12px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:1.45}
+.limit-note .i{width:18px;height:18px;margin-top:1px;flex:none}
+.limit-note b{font-weight:800}
 /* Jump button */
 #jump{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));background:var(--blue);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:800;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none;z-index:5;opacity:.94}
 #jump.show{display:flex;gap:5px;align-items:center}
@@ -441,6 +445,7 @@ body{overflow-x:hidden}
   <div id="out">
     <div class="empty"><svg><use href="#train"/></svg><p>Upar train number daalo (jaise 12301) aur live location, late/time par, aur har station ka time dekho.</p></div>
   </div>
+  <p class="limit-note"><svg class="i"><use href="#i-alert"/></svg><span>Free service hai, isliye <b>ek minute mein sirf 10 baar</b> hi kuch bhi check kar sakte ho (live status, PNR, trains, seats sab milakar). Zyada hone par ek minute ruk kar dobara try karo.</span></p>
 </main>
 <div id="mini" class="minibar" aria-hidden="true"></div>
 <button id="jump" aria-label="Train ki jagah par jao"><svg><use href="#pin"/></svg>Train kahan</button>
